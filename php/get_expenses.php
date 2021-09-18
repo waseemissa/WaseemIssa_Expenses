@@ -4,7 +4,7 @@ session_start();
 header("Content-Type: JSON");
 
 
-$user_id = $_SESSION['user_id'];
+$user_id = $_GET['id'];
 $response = array();
 $i=0;
 

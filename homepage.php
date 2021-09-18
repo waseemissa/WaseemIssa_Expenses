@@ -16,6 +16,8 @@ session_start();
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
+        <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-core.min.js"></script>
+        <script src="https://cdn.anychart.com/releases/8.0.1/js/anychart-pie.min.js"></script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
     </head>
     <body>
@@ -23,6 +25,7 @@ session_start();
     <div class="topnav" id="myTopnav">
         <a href="#home" class="active">Expense Tracker</a>
         <a href="#add-expense-form" rel="modal:open">Add Expense</a>
+        <a id="add_category">Add Category<button hidden id="user_id_button" value="<?php echo $_SESSION['user_id']; ?>"></button></a>
         <a href="php/logout.php">Logout</a>
         <a href="javascript:void(0);" class="icon" onclick="myFunction()">
         <i class="fa fa-bars"></i>
@@ -30,7 +33,9 @@ session_start();
     </div>
 
     <!-- Table of Data -->
-    <table class="table">
+
+    <br><br><br>
+    <table class="table" id="expenses_table">
         <thead>
             <tr>
                 <th scope="col">#</th>
@@ -43,6 +48,8 @@ session_start();
         <tbody id="data">
         </tbody>
     </table>
+
+    <center><div id="container" style="width: 500px; height: 400px;"></div></center>
 
   
     <!-- Add an Expense  -->
@@ -67,136 +74,32 @@ session_start();
         </div>
     </form>
 
+    <!-- Edit an Expense -->
+    <form id="edit-expense-form" class="modal">
+        <input hidden id="user1" value="<?php echo $_SESSION['user_id']; ?>" ></input>
+        <div class="mb-3">
+            <label for="exampleFormControlInput1" class="form-label">Amount</label>
+            <input type="text" name="amount" id="amount1" class="form-control" id="exampleFormControlInput1" placeholder="Amount in USD">
+        </div>
+        <div class="mb-3">
+            <label for="exampleFormControlInput1" class="form-label">Date</label>
+            <input type="text" name="date" id="date1" class="form-control" id="exampleFormControlInput1" placeholder="Y-m-d">
+        </div>
+        <div class="mb-3">
+        <label for="exampleFormControlInput1" class="form-label">Category</label>
+        <select name = "category" id = "category1" class="form-select" aria-label="Default select example">
+            <option selected>Select a Category</option>
+        </select>
+        </div>
+        <div class="mb-3">
+        <center><button id = "edit_expense_button" value="" type="submit" class="btn btn-light">Edit Expense</button></center>
+        </div>
+    </form>
 
-    <script>
-
-        async function fetchCategoriesAPI(){
-            const response = await fetch('http://localhost/WaseemIssa_Expenses/php/get_categories.php');
-				if(!response.ok){
-					const message = "An Error has occured";
-					throw new Error(message);
-				}
-				
-				const data = await response.json();
-				return data; 
-			}
     
-
-        async function fetchAPI(){
-				const response = await fetch('http://localhost/WaseemIssa_Expenses/php/get_expenses.php');
-				if(!response.ok){
-					const message = "An Error has occured";
-					throw new Error(message);
-				}
-				
-				const data = await response.json();
-				return data; 
-			}
-        
-        async function deleteAPI(){
-            var id = $(".delete").val();
-            const response = await fetch('http://localhost/WaseemIssa_Expenses/php/delete_expense.php?id='+id);
-            if(!response.ok){
-					const message = "An Error has occured";
-					throw new Error(message);
-				}
-				
-				const data = await response.json();
-				return data; 
-        }
-
-        $(document).on('submit','#add-expense-form',function(e){
-        e.preventDefault();
-        var id = $("#category").val();
-        var user_id = $("#user").val();
-        var date = $("#date").val();
-        var amount = $("#amount").val();
-        var category = $("#category").innerHTML;
-       
-        $.ajax({
-        method:"POST",
-        url: "http://localhost/WaseemIssa_Expenses/php/add_expense.php",
-        data:{
-            id : id,
-            user_id : user_id,
-            date : date,
-            amount : amount
-        },
-        success: function(data){
-        $('#add-expense-form').find('input').val('');
-        $('#data').innerHTML += "<tr id="+id+">";
-        $('#data').innerHTML += "<td class='product-category'><span class='categories'>"+id+"</span></td>";
-        $('#data').innerHTML += "<td class='product-category'><span class='categories'>"+category+"</span></td>";
-        $('#data').innerHTML += "<td class='product-category'><span class='categories'>"+amount+"$</span></td>";
-        $('#data').innerHTML += "<td class='product-category'><span class='categories'>"+date+"</span></td>";
-        $('#data').innerHTML += "<td class='action' data-title='Action'>";
-        $('#data').innerHTML += "<div class=''><ul class='list-inline justify-content-center'>";
-        $('#data').innerHTML += "<li class='list-inline-item'><button class='edit' data-toggle='tooltip' value='"+id+"' data-placement='top' title='Edit'><i class='fa fa-pencil'></i></button></li>";
-        $('#data').innerHTML += "<li class='list-inline-item'><button class='delete' data-toggle='tooltip' value='"+id+"' data-placement='top' title='Delete' href=''><i class='fa fa-trash'></i></button></li>";
-        $('#data').innerHTML += "</ul></div></td></tr>";
-
-    }});
-});
-
-            
-
-		$(document).ready(getData);
-        $(document).ready(getCategories);
-        $(".delete").click(deleteExpense);
-       // $(".edit").click(editExpense);
-        
-		function getData(){
-			fetchAPI().then(data => {
-				console.log(data);
-                if(data.length > 0){
-                    var temp="";
-                    data.forEach((u)=>{
-                        temp+="<tr id="+u.id+">";
-                        temp+="<td class='product-category'><span class='categories'>"+u.id+"</span></td>";
-                        temp+="<td class='product-category'><span class='categories'>"+u.category+"</span></td>";
-                        temp+="<td class='product-category'><span class='categories'>"+u.amount+"$</span></td>";
-                        temp+="<td class='product-category'><span class='categories'>"+u.date+"</span></td>";
-                        temp+="<td class='action' data-title='Action'>";
-                        temp+="<div class=''><ul class='list-inline justify-content-center'>";
-                        temp+="<li class='list-inline-item'><button class='edit' data-toggle='tooltip' value='"+u.id+"' data-placement='top' title='Edit'><i class='fa fa-pencil'></i></button></li>";
-                        temp+="<li class='list-inline-item'><button class='delete' data-toggle='tooltip' value='"+u.id+"' data-placement='top' title='Delete' href=''><i class='fa fa-trash'></i></button></li>";
-                        temp+="</ul></div></td></tr>";
-                    });
-                    document.getElementById("data").innerHTML = temp;
-                }
-			}).catch(error => {
-				console.log(error.message);
-			})
-		}
-
-        function getCategories(){
-            fetchCategoriesAPI().then(data =>{
-                console.log(data);
-                if(data.length>0){
-                    var temp="";
-                    data.forEach((u)=>{
-                        temp+= "<option value="+u.category_id+">"+u.category_name+"</option>";
-                    });
-
-                }
-                document.getElementById("category").innerHTML = temp;
-            }).catch(error => {
-				console.log(error.message);
-			})
-        }
-
-        function deleteExpense(){
-            var id = $(".delete").val();
-            deleteAPI().then(data =>{
-                console.log(data);
-                if(data.length!=-1){
-                    document.getElementById(id).remove();
-                }
-            }).catch(error => {
-				console.log(error.message);
-			})
-        }
-
-    </script>
+    <script src = "js/get_expenses.js"></script>
+    <script src = "js/get_categories.js"></script>
+    <script src = "js/add_expense.js"></script>
+    <script src = "js/add_category.js"></script>
     </body>    
 </html>

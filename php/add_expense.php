@@ -1,11 +1,6 @@
 <?php
-session_start();
+
 require 'connection.php';
-
-//$user_id = $_SESSION['user_id'];
-$response = array();
-
-
 
  $amount = $_POST['amount'];
 
@@ -15,28 +10,36 @@ $response = array();
 
  $user_id = $_POST['user_id'];
  $category_id = $_POST['id'];
+ $category_name = "";
 
 
  $query = "INSERT INTO expenses (user_id, category_id, amount, date) VALUES (?,?,?,?)";
  $stmt = $connection->prepare($query);
  $stmt->bind_param("iids", $user_id, $category_id, $amount, $final_date);
  $stmt->execute();
- $result = $stmt->get_result();
+ $id = $stmt->insert_id;
 
- if($result){
-    $response["success"] = [
-        "code" => 200,
-        "message" => "Success"
-    ];
-}
- else{
-    $response["error"] = [
-        "code" => 400,
-        "message" => "Fail"
-    ];
+ $query2 = "SELECT name From categories WHERE id = ?";
+ $stmt2 = $connection->prepare($query2);
+ $stmt2->bind_param("i", $category_id);
+ $stmt2->execute();
+ $result = $stmt2->get_result();
+ if($row = $result->fetch_assoc()){
+     $category_name = $row["name"];
  }
 
- echo json_encode($response, JSON_PRETTY_PRINT);
+
+
+
+ $added_expense = array();
+ $added_expense["id"] = $id;
+ $added_expense["category"] = $category_name;
+ $added_expense["amount"] = $amount;
+ $added_expense["date"] = $final_date;
+
+ $added_expense_json = json_encode($added_expense, JSON_PRETTY_PRINT);
+
+ echo $added_expense_json;
 
 
 ?>
